@@ -1,12 +1,21 @@
 import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
-import { from, interval, Observable, of, Subject, Subscriber } from 'rxjs';
+import {
+  combineLatest,
+  from,
+  interval,
+  Observable,
+  of,
+  Subject,
+  Subscriber,
+} from 'rxjs';
 import {
   publish,
   publishReplay,
   refCount,
   share,
   shareReplay,
+  startWith,
   switchMap,
   take,
 } from 'rxjs/operators';
@@ -17,7 +26,7 @@ import {
   styleUrls: ['./app.component.scss'],
 })
 export class AppComponent {
-  constructor(httpClient: HttpClient) {
+  constructor(private httpClient: HttpClient) {
     /* const ofSub$ = of(1);
     const one = 1;
     const testFrom = new Observable((subscriber: Subscriber<number>) => {
@@ -73,41 +82,34 @@ export class AppComponent {
         () => console.log('my subj complete')
       );
     }, 5000);*/
-
-    this.data$ = of(1).pipe(
+    /*  this.data$ = of(1).pipe(
       switchMap(() =>
         httpClient.get('https://jsonplaceholder.typicode.com/users')
       ) /*= this.filter$.pipe(
       switchMap(() =>
         httpClient.get('https://jsonplaceholder.typicode.com/users')
       ),*/
-
-      //share()
-      //если был complete будет подписан заново при помощи нового Subject
-      //актуально для Observable которые при подписке заново эмитят события
-
-      //publish(),
-      //refCount()
-      //если был complete будет вызван только complete
-
-      //принцип работы после срабатывания refCount() (все отписались)
-
-      //shareReplay({ refCount: true, bufferSize: 2 })
-      //shareReplay({ refCount: true, bufferSize: 2 })
-      //если был завершен - выдаст complete, без воспроизведения истории
-      //если не был завершен - подпишется заново, без воспроизведения истории
-
-      //shareReplay({ refCount: false, bufferSize: 1 })
-      //shareReplay({ refCount: false, bufferSize: 1 }) == shareReplay(1)
-      //если был завершен - выдаст историю + complete
-      //если не был завершен - выдаст историю (будет продолжать получать результат, с учетом времени пока не было подписок)
-
-      //publishReplay(1),
-      //refCount()
-      //publishReplay(1),refCount()
-      //если был завершен - выдаст историю + complete
-      //если не был завершен - выдаст историю (будет получать результаты заново)
-    );
+    //share()
+    //если был complete будет подписан заново при помощи нового Subject
+    //актуально для Observable которые при подписке заново эмитят события
+    //publish(),
+    //refCount()
+    //если был complete будет вызван только complete
+    //принцип работы после срабатывания refCount() (все отписались)
+    //shareReplay({ refCount: true, bufferSize: 2 })
+    //shareReplay({ refCount: true, bufferSize: 2 })
+    //если был завершен - выдаст complete, без воспроизведения истории
+    //если не был завершен - подпишется заново, без воспроизведения истории
+    //shareReplay({ refCount: false, bufferSize: 1 })
+    //shareReplay({ refCount: false, bufferSize: 1 }) == shareReplay(1)
+    //если был завершен - выдаст историю + complete
+    //если не был завершен - выдаст историю (будет продолжать получать результат, с учетом времени пока не было подписок)
+    //publishReplay(1),
+    //refCount()
+    //publishReplay(1),refCount()
+    //если был завершен - выдаст историю + complete
+    //если не был завершен - выдаст историю (будет получать результаты заново)
+    /*  );
 
     let sub1 = this.data$.subscribe((x) => console.log('sub1'));
     let sub2 = this.data$.subscribe((x) => console.log('sub2'));
@@ -134,7 +136,32 @@ export class AppComponent {
       () => {},
       () => console.log('[2] sub2 complete')
     );
-    this.filter$.next();
+    this.filter$.next();*/
+
+    this.data$
+      .pipe(
+        switchMap((x) =>
+          combineLatest([
+            this.httpClient.get('https://jsonplaceholder.typicode.com/users'),
+            /*this.httpClient
+              .get('https://jsonplaceholder.typicode.com/todos/1')
+              .pipe(startWith([undefined])),*/
+            this.innerCombineLatest$,
+          ])
+        )
+      )
+      .subscribe((x) => console.log(x));
+  }
+
+  data$ = new Subject<void>();
+  innerCombineLatest$ = new Subject<void>();
+
+  invokeCombineLatest(): void {
+    this.data$.next();
+  }
+
+  innerCombineEmit(): void {
+    this.innerCombineLatest$.next();
   }
 }
 export function fromArrayLike<T>(array: ArrayLike<T>) {
